@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Qsar</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Qusar/ComRes Analysis</title>
+    <script src="plotly-2.27.0.min.js"></script>
+    <style>
+        body { font-family: "Segoe UI", Arial, sans-serif; background: #f8f9fa; margin: 30px; color: #333; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        
+        /* Header & Inputs */
+        .header-section { border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 10px; }
+        .title-row { display: flex; justify-content: space-between; align-items: center; }
+        .input-group { margin: 10px 0; font-weight: bold; }
+        input.sn-input { border: 1px solid #ccc; padding: 5px; width: 200px; font-size: 1.1em; }
+        textarea.comment-box { width: 100%; height: 60px; border: 1px solid #ccc; padding: 10px; font-family: inherit; resize: none; margin-top: 5px; }
+
+        /* Paste Box */
+        #paste-box {
+            width: 100%; height: 80px; border: 2px dashed #0d6efd; background: #f0f7ff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin-bottom: 20px; cursor: pointer; color: #0d6efd;
+        }
+
+        /* Charts */
+        .chart-card { page-break-inside: avoid; margin-bottom: 40px; border: 1px solid #eee; padding: 10px; border-radius: 5px; }
+        .controls { display: flex; gap: 10px; align-items: center; background: #f1f1f1; padding: 8px; margin-bottom: 10px; font-size: 0.9em; }
+        input[type="number"] { width: 70px; }
+        
+        /* Print Logic */
+        @media print {
+            body { background: white; margin: 0; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: none; }
+            #paste-box, .controls, button, #status { display: none !important; }
+            .chart-card { border: none; margin-bottom: 10px; }
+            input.sn-input, textarea.comment-box { border: none; background: transparent; padding: 0; }
+            .header-section { border-bottom: 1px solid #000; }
+        }
+
+        .status { color: #198754; font-weight: bold; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-section">
+        <div class="title-row">
+            <h1 style="margin:0;">Qusar/ComRes Analysis</h1>
+            <div class="input-group">
+                Serial Number: <input type="text" class="sn-input" placeholder="Enter S/N...">
+            </div>
+        </div>
+        <div class="input-group">
+            Comments:
+            <textarea class="comment-box" placeholder="Enter test comments or observations here..."></textarea>
+        </div>
+    </div>
+
+    <div id="paste-box" tabindex="0">
+        <strong>Click here and press Ctrl+V to paste your data</strong>
+        <small>(Expects 96 columns, approx. 12,000 rows)</small>
+    </div>
+    
+    <div id="status" class="status"></div>
+
+    <div id="charts-wrapper">
+        <div class="chart-card">
+            <div class="controls">
+                <strong>Plot 1: Phase Comparison</strong>
+                Min: <input type="number" id="p1-min" value="-0.2" step="0.05">
+                Max: <input type="number" id="p1-max" value="0.2" step="0.05">
+                <button onclick="updateScale('plot1', 'p1-min', 'p1-max')">Apply</button>
+            </div>
+            <div id="plot1"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="controls">
+                <strong>Plot 2: Attenuation M48 & H48</strong>
+                Min: <input type="number" id="p2-min" value="4.1" step="0.05">
+                Max: <input type="number" id="p2-max" value="4.4" step="0.05">
+                <button onclick="updateScale('plot2', 'p2-min', 'p2-max')">Apply</button>
+            </div>
+            <div id="plot2"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="controls">
+                <strong>Plot 3: Attenuation M32 & H32</strong>
+                Min: <input type="number" id="p3-min" value="6.1" step="0.05">
+                Max: <input type="number" id="p3-max" value="6.4" step="0.05">
+                <button onclick="updateScale('plot3', 'p3-min', 'p3-max')">Apply</button>
+            </div>
+            <div id="plot3"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="controls">
+                <strong>Plot 4: Attenuation M16 & H16</strong>
+                Min: <input type="number" id="p4-min" value="11.3" step="0.05">
+                Max: <input type="number" id="p4-max" value="11.9" step="0.05">
+                <button onclick="updateScale('plot4', 'p4-min', 'p4-max')">Apply</button>
+            </div>
+            <div id="plot4"></div>
+        </div>
+
+        <div class="chart-card"><h3>5. TmCounts Interval (0-100)</h3><div id="plot5"></div></div>
+        <div class="chart-card"><h3>6. Current M48 (U & L)</h3><div id="plot6"></div></div>
+        <div class="chart-card"><h3>7. Current M32 (U & L)</h3><div id="plot7"></div></div>
+        <div class="chart-card"><h3>8. Current M16 (U & L)</h3><div id="plot8"></div></div>
+        <div class="chart-card"><h3>9. Current H48 (U & L)</h3><div id="plot9"></div></div>
+        <div class="chart-card"><h3>10. Current H32 (U & L)</h3><div id="plot10"></div></div>
+        <div class="chart-card"><h3>11. Current H16 (U & L)</h3><div id="plot11"></div></div>
+    </div>
+</div>
+
+<script>
+    const HEADERS = ["Quasar Time & Date", "Quasar Depth(ft)", "Quasar T/D Activity", "Quasar TmCounts", "Quasar Tm Type", "Quasar Tm Synch", "Sec Since Reset", "Reset Number", "xAdrCompPhsM48(deg)", "xAdrCompAttM48", "xAdrCompPhsM32(deg)", "xAdrCompAttM32", "xAdrCompPhsM16(deg)", "xAdrCompAttM16", "xAdrCompPhsH48(deg)", "xAdrCompAttH48", "xAdrCompPhsH32(deg)", "xAdrCompAttH32", "xAdrCompPhsH16(deg)", "xAdrCompAttH16", "TxUNearAmpM48", "TxUFarAmpM48", "TxUNearPhsM48", "TxUFarPhsM48", "TxUCurrentM48(amps)", "TxLNearAmpM48", "TxLFarAmpM48", "TxLNearPhsM48", "TxLFarPhsM48", "TxLCurrentM48(amps)", "TxUNearAmpM32", "TxUFarAmpM32", "TxUNearPhsM32", "TxUFarPhsM32", "TxUCurrentM32(amps)", "TxLNearAmpM32", "TxLFarAmpM32", "TxLNearPhsM32", "TxLFarPhsM32", "TxLCurrentM32(amps)", "TxUNearAmpM16", "TxUFarAmpM16", "TxUNearPhsM16", "TxUFarPhsM16", "TxUCurrentM16(amps)", "TxLNearAmpM16", "TxLFarAmpM16", "TxLNearPhsM16", "TxLFarPhsM16", "TxLCurrentM16(amps)", "TxUNearAmpH48", "TxUFarAmpH48", "TxUNearPhsH48", "TxUFarPhsH48", "TxUCurrentH48(amps)", "TxLNearAmpH48", "TxLFarAmpH48", "TxLNearPhsH48", "TxLFarPhsH48", "TxLCurrentH48(amps)", "TxUNearAmpH32", "TxUFarAmpH32", "TxUNearPhsH32", "TxUFarPhsH32", "TxUCurrentH32(amps)", "TxLNearAmpH32", "TxLFarAmpH32", "TxLNearPhsH32", "TxLFarPhsH32", "TxLCurrentH32(amps)", "TxUNearAmpH16", "TxUFarAmpH16", "TxUNearPhsH16", "TxUFarPhsH16", "TxUCurrentH16(amps)", "TxLNearAmpH16", "TxLFarAmpH16", "TxLNearPhsH16", "TxLFarPhsH16", "TxLCurrentH16(amps)", "xAdrGainM16", "xAdrGainM32", "xAdrGainM48", "xAdrGainH16", "xAdrGainH32", "xAdrGainH48", "xAdrDiagnostic", "xAdrTemperature(degF)", "Quasar FXT(min)", "Quasar DD(ptpf)", "Quasar TVD(ft)", "Quasar TVT(ft)", "Quasar TVD SS(ft)", "Quasar TST(ft)", "Quasar HD(ft)", "Quasar VS(ft)"];
+    
+    document.getElementById('paste-box').addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        processData(text);
+    });
+
+    function processData(text) {
+        document.getElementById('status').innerText = "Generating charts...";
+        let rows = text.trim().split(/\r?\n/);
+        
+        // Auto-skip header if present
+        if (isNaN(parseFloat(rows[0].split('\t')[3]))) { rows.shift(); }
+
+        const numRows = rows.length;
+        let colData = Array.from({length: 96}, () => new Float64Array(numRows));
+        
+        for (let i = 0; i < numRows; i++) {
+            const cells = rows[i].split('\t');
+            for (let j = 0; j < 96; j++) {
+                colData[j][i] = parseFloat(cells[j]) || 0;
+            }
+        }
+
+        // Interval Logic: Next Row - Current Row
+        let intervalData = new Float64Array(numRows);
+        for (let i = 0; i < numRows - 1; i++) {
+            intervalData[i] = colData[3][i + 1] - colData[3][i];
+        }
+
+        renderDashboard(colData, intervalData, numRows);
+    }
+
+    function renderDashboard(cols, interval, n) {
+        const x = Array.from({length: n}, (_, i) => i);
+        
+        const configs = [
+            { id: 'plot1', indices: [8, 10, 12, 14, 16, 18], range: [-0.2, 0.2] },
+            { id: 'plot2', indices: [9, 15], range: [4.1, 4.4] },
+            { id: 'plot3', indices: [11, 17], range: [6.1, 6.4] },
+            { id: 'plot4', indices: [13, 19], range: [11.3, 11.9] },
+            { id: 'plot5', custom: [{ y: interval, name: 'Interval' }], range: [0, 100] },
+            { id: 'plot6', indices: [24, 29], autoscale: true },
+            { id: 'plot7', indices: [34, 39], autoscale: true },
+            { id: 'plot8', indices: [44, 49], autoscale: true },
+            { id: 'plot9', indices: [54, 59], autoscale: true },
+            { id: 'plot10', indices: [64, 69], autoscale: true },
+            { id: 'plot11', indices: [74, 79], autoscale: true }
+        ];
+
+        configs.forEach(cfg => {
+            let traces = cfg.indices 
+                ? cfg.indices.map(idx => ({ x: x, y: cols[idx], name: HEADERS[idx], type: 'scatter', mode: 'lines' }))
+                : cfg.custom.map(c => ({ x: x, y: c.y, name: c.name, type: 'scatter', mode: 'lines' }));
+
+            const layout = {
+                height: 320,
+                margin: { t: 5, b: 30, l: 50, r: 10 },
+                yaxis: cfg.autoscale ? { autorange: true } : { range: cfg.range },
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot(cfg.id, traces, layout, {responsive: true});
+        });
+
+        document.getElementById('status').innerText = `Report Ready: ${n} rows analyzed.`;
+    }
+
+    function updateScale(divId, minId, maxId) {
+        const min = parseFloat(document.getElementById(minId).value);
+        const max = parseFloat(document.getElementById(maxId).value);
+        Plotly.relayout(divId, { 'yaxis.range': [min, max] });
+    }
+</script>
+
+</body>
+</html>
+    
+  </body>
+  
+</html>
